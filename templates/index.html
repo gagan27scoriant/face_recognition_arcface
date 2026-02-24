@@ -3,95 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArcFace Facial Recognition System</title>
+    <title>Facial Recognition System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <h1 class="navbar-title">🔐 Facial Recognition System</h1>
-            <p class="navbar-subtitle">Real-time ArcFace Attendance Tracking (CSV Only)</p>
-        </div>
-    </nav>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>FaceFlow</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#" onclick="showPanel('camera')">Live Camera</a></li>
+                    <li><a href="#" onclick="showPanel('persons')">Registered Persons</a></li>
+                    <li><a href="#" onclick="showPanel('entries')">Today's Entries</a></li>
+                    <li><a href="#" onclick="downloadCsv()">Export CSV</a></li>
+                </ul>
+            </nav>
 
-    <!-- Main Content with Flexbox -->
-    <div class="main-flex-container">
-        <!-- Left Side: Camera Preview -->
-        <div class="camera-column">
-            <div class="camera-section">
-                <h2>📹 Live Camera Feed</h2>
-                <div class="video-container">
-                    <img id="video-stream" 
-                         src="{{ url_for('video_feed') }}" 
-                         alt="Live Camera Feed"
-                         onload="onCameraLoad()"
-                         onerror="onCameraError()" />
-                    <div class="loading-indicator" id="loading-indicator">
-                        <div class="spinner"></div>
-                        <p>Connecting to Camera...</p>
+            <div class="sidebar-history">
+                <h3>History</h3>
+                <div id="history-list">Loading...</div>
+            </div>
+
+            <div class="sidebar-retrain">
+                <button class="btn-retrain" id="retrain-btn" onclick="reloadDatabase()">Retrain Model</button>
+            </div>
+            <!-- Sidebar resizer -->
+            <div id="sidebar-resizer" class="resizer resizer-vertical" title="Drag to resize sidebar"></div>
+        </aside>
+
+        <main class="main-area">
+            <header class="main-header">
+                <h1>Facial Recognition Pipeline</h1>
+                <p>Real-time ArcFace Attendance Tracking</p>
+            </header>
+
+            <section id="panel-camera" class="panel panel-active">
+                <div class="camera-card" id="camera-card">
+                    <div class="camera-card-header">
+                        <h2>Live Camera Feed</h2>
+                    </div>
+
+                        <div class="camera-box" id="camera-box">
+                            <img id="video-stream" src="" alt="Live Camera Feed" onload="onCameraLoad()" onerror="onCameraError()">
+                            <div class="camera-placeholder" id="camera-placeholder">Camera Inactive</div>
+                            <div class="badge-live" id="badge-live"><span class="dot" id="badge-dot"></span><span id="badge-text">Offline</span></div>
+                            <div class="recognition" id="recognition">No detections</div>
+                            <!-- camera horizontal resizer -->
+                            <div id="camera-resizer" class="resizer resizer-horizontal" title="Drag to change camera height"></div>
+                        </div>
+
+                    <div class="camera-actions">
+                        <button class="btn-start" id="start-camera" onclick="startCamera()">Start Camera</button>
+                        <button class="btn-stop" id="stop-camera" onclick="stopCamera()">Stop Camera</button>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Right Side: Tables and Controls -->
-        <div class="info-column">
-            <!-- Registered Persons -->
-            <div class="section">
-                <h2>👥 Registered Persons</h2>
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Name</th>
-                            </tr>
-                        </thead>
-                        <tbody id="persons-tbody">
-                            <tr>
-                                <td colspan="2" class="placeholder">Loading...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <section id="panel-persons" class="panel">
+                <div class="panel-card" id="panel-persons-card">
+                    <h2>Registered Persons</h2>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr><th>#</th><th>Name</th><th>Status</th></tr></thead>
+                            <tbody id="persons-tbody">
+                                <tr><td colspan="3" class="placeholder">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="resizer resizer-corner" title="Drag to resize panel"></div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Today's Entries -->
-            <div class="section">
-                <h2>📋 Today's Entries (CSV)</h2>
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Name</th>
-                                <th>Time</th>
-                                <th>Conf.</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendance-tbody">
-                            <tr>
-                                <td colspan="4" class="placeholder">No entries today</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <section id="panel-entries" class="panel">
+                <div class="panel-card" id="panel-entries-card">
+                    <h2>Today's Entries</h2>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr><th>#</th><th>Name</th><th>Time</th><th>Confidence</th></tr></thead>
+                            <tbody id="attendance-tbody">
+                                <tr><td colspan="4" class="placeholder">No entries today</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="resizer resizer-corner" title="Drag to resize panel"></div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Controls -->
-            <div class="section controls-section">
-                <h2>🛠️ Controls</h2>
-                <div class="button-group">
-                    <button class="btn-primary" onclick="reloadDatabase()" id="reload-btn">
-                        🔄 Retrain Model
-                    </button>
-                    <button class="btn-secondary" onclick="downloadCsv()">
-                        💾 Download CSV
-                    </button>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
 
     <!-- Footer -->
@@ -109,23 +109,33 @@
             setInterval(updateAllData, UPDATE_INTERVAL);
         });
 
-        // Camera load handlers
-        function onCameraLoad() {
-            const indicator = document.getElementById('loading-indicator');
-            if (indicator) {
-                setTimeout(() => {
-                    indicator.style.display = 'none';
-                }, 1000);
+        // Camera helpers
+        function setLiveState(isLive) {
+            const badge = document.getElementById('badge-live');
+            const badgeText = document.getElementById('badge-text');
+            const placeholder = document.getElementById('camera-placeholder');
+            const dot = document.getElementById('badge-dot');
+            if (isLive) {
+                badge.classList.add('active');
+                badgeText.textContent = 'Live';
+                if (placeholder) placeholder.style.display = 'none';
+                if (dot) dot.style.background = getComputedStyle(document.documentElement).getPropertyValue('--success') || '#27ae60';
+            } else {
+                badge.classList.remove('active');
+                badgeText.textContent = 'Offline';
+                if (placeholder) placeholder.style.display = 'block';
+                if (dot) dot.style.background = '#9ca3af';
             }
-            console.log('✓ Camera feed loaded');
+        }
+
+        function onCameraLoad() {
+            console.log('Camera stream loaded');
+            setLiveState(true);
         }
 
         function onCameraError() {
-            const indicator = document.getElementById('loading-indicator');
-            if (indicator) {
-                indicator.innerHTML = '<div style="color: red; padding: 20px;">❌ Camera Error: Check server</div>';
-            }
-            console.error('❌ Camera feed error - ensure Flask app is running');
+            console.error('Camera stream error');
+            setLiveState(false);
         }
 
         // Update all data
@@ -143,7 +153,7 @@
                     const persons = data.persons || [];
 
                     if (persons.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="2" class="placeholder">No persons registered</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="3" class="placeholder">No persons registered</td></tr>';
                         return;
                     }
 
@@ -151,6 +161,7 @@
                         <tr>
                             <td class="row-number">${index + 1}</td>
                             <td class="person-name">${person}</td>
+                            <td>Active</td>
                         </tr>
                     `).join('');
                 })
@@ -188,30 +199,203 @@
 
         // Reload and retrain
         function reloadDatabase() {
-            const btn = document.getElementById('reload-btn');
-            if (confirm('Retrain model from dataset? This may take a minute.')) {
-                btn.disabled = true;
-                btn.textContent = '⏳ Training...';
+            const btn = document.getElementById('retrain-btn');
+            if (!confirm('Retrain model from dataset? This may take a minute.')) return;
+            btn.disabled = true;
+            btn.textContent = '⏳ Training...';
 
-                fetch('/api/reload')
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(`✓ Model trained!\nRegistered: ${data.registered_persons}`);
-                        updateAllData();
-                    })
-                    .catch(error => {
-                        alert(`Error: ${error}`);
-                    })
-                    .finally(() => {
-                        btn.disabled = false;
-                        btn.textContent = '🔄 Retrain Model';
-                    });
-            }
+            fetch('/api/reload')
+                .then(response => response.json())
+                .then(data => {
+                    alert(`✓ Model trained!\nRegistered: ${data.registered_persons}`);
+                    updateAllData();
+                    fetchHistory();
+                })
+                .catch(error => {
+                    alert(`Error: ${error}`);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Retrain Model';
+                });
         }
 
         // Download CSV
         function downloadCsv() {
             window.location.href = '/download/attendance';
+        }
+
+        // Start/Stop camera controls
+        function startCamera() {
+            const img = document.getElementById('video-stream');
+            if (img.getAttribute('src') !== '/video_feed') {
+                img.src = '/video_feed';
+            }
+            setLiveState(true);
+        }
+
+        function stopCamera() {
+            const img = document.getElementById('video-stream');
+            img.src = '';
+            setLiveState(false);
+        }
+
+        // Panel navigation
+        function showPanel(name) {
+            const panels = document.querySelectorAll('.panel');
+            panels.forEach(p => p.classList.remove('panel-active'));
+            const target = document.getElementById('panel-' + name);
+            if (target) target.classList.add('panel-active');
+            // load data for panel
+            if (name === 'persons') updateRegisteredPersons();
+            if (name === 'entries') updateTodayEntries();
+        }
+
+        // History
+        function fetchHistory() {
+            fetch('/api/history')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('history-list');
+                    const files = data.files || [];
+                    if (!files.length) {
+                        container.innerHTML = '<div class="placeholder">No history files</div>';
+                        return;
+                    }
+                    container.innerHTML = files.map(f => `
+                        <div class="history-item" onclick="window.location.href='/download/history/${encodeURIComponent(f)}'">${f}</div>
+                    `).join('');
+                })
+                .catch(e => {
+                    console.error('Error loading history', e);
+                });
+        }
+
+        // initial history load
+        document.addEventListener('DOMContentLoaded', fetchHistory);
+
+        // Resizer utilities
+        function makeSidebarResizable() {
+            const resizer = document.getElementById('sidebar-resizer');
+            const sidebar = document.querySelector('.sidebar');
+            if (!resizer || !sidebar) return;
+
+            // load saved width
+            const saved = localStorage.getItem('sidebarWidth');
+            if (saved) sidebar.style.width = saved + 'px';
+
+            let startX, startWidth;
+            const onMouseMove = (e) => {
+                const dx = e.clientX - startX;
+                let newWidth = startWidth + dx;
+                newWidth = Math.max(160, Math.min(newWidth, 600));
+                sidebar.style.width = newWidth + 'px';
+            };
+
+            const onMouseUp = (e) => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                localStorage.setItem('sidebarWidth', parseInt(sidebar.style.width));
+            };
+
+            resizer.addEventListener('mousedown', (e) => {
+                startX = e.clientX;
+                startWidth = sidebar.getBoundingClientRect().width;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+                e.preventDefault();
+            });
+        }
+
+        function makeCameraResizable() {
+            const resizer = document.getElementById('camera-resizer');
+            const cameraBox = document.getElementById('camera-box');
+            if (!resizer || !cameraBox) return;
+
+            // load saved height
+            const saved = localStorage.getItem('cameraHeight');
+            if (saved) cameraBox.style.height = saved + 'px';
+
+            let startY, startHeight;
+            const onMouseMove = (e) => {
+                const dy = e.clientY - startY;
+                let newH = startHeight + dy;
+                newH = Math.max(240, Math.min(newH, 800));
+                cameraBox.style.height = newH + 'px';
+            };
+
+            const onMouseUp = (e) => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                localStorage.setItem('cameraHeight', parseInt(cameraBox.style.height));
+            };
+
+            resizer.addEventListener('mousedown', (e) => {
+                startY = e.clientY;
+                startHeight = cameraBox.getBoundingClientRect().height;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+                e.preventDefault();
+            });
+        }
+
+        // Initialize resizers on load
+        document.addEventListener('DOMContentLoaded', () => {
+            makeSidebarResizable();
+            makeCameraResizable();
+            makePanelsResizable();
+        });
+
+        // Make any .panel-card resizable via its .resizer-corner child
+        function makePanelsResizable() {
+            const panels = document.querySelectorAll('.panel-card');
+            panels.forEach(panel => {
+                const id = panel.id || ('panel-' + Math.random().toString(36).slice(2,8));
+                if (!panel.id) panel.id = id;
+                // restore saved size
+                const saved = localStorage.getItem('panelSize_' + panel.id);
+                if (saved) {
+                    try {
+                        const obj = JSON.parse(saved);
+                        if (obj.width) panel.style.width = obj.width + 'px';
+                        if (obj.height) panel.style.height = obj.height + 'px';
+                    } catch(e){}
+                }
+
+                const resizer = panel.querySelector('.resizer.resizer-corner');
+                if (!resizer) return;
+
+                let startX, startY, startW, startH;
+                const onMouseMove = (e) => {
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    let newW = startW + dx;
+                    let newH = startH + dy;
+                    newW = Math.max(320, Math.min(newW, window.innerWidth - 100));
+                    newH = Math.max(180, Math.min(newH, window.innerHeight - 100));
+                    panel.style.width = newW + 'px';
+                    panel.style.height = newH + 'px';
+                };
+
+                const onMouseUp = (e) => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    // persist
+                    const rect = panel.getBoundingClientRect();
+                    localStorage.setItem('panelSize_' + panel.id, JSON.stringify({width: Math.round(rect.width), height: Math.round(rect.height)}));
+                };
+
+                resizer.addEventListener('mousedown', (e) => {
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const rect = panel.getBoundingClientRect();
+                    startW = rect.width;
+                    startH = rect.height;
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    e.preventDefault();
+                });
+            });
         }
     </script>
 </body>

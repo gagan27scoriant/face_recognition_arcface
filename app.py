@@ -285,6 +285,36 @@ def download_attendance():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@app.route('/api/history')
+def api_history():
+    """Return list of attendance CSV files in the database directory"""
+    try:
+        files = []
+        for fname in os.listdir(DATABASE_DIR):
+            if fname.lower().endswith('.csv') and fname.startswith('Attendance_'):
+                files.append(fname)
+        files.sort(reverse=True)
+        return jsonify({'status': 'ok', 'files': files})
+    except Exception as e:
+        logger.error(f"History API error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/download/history/<path:filename>')
+def download_history_file(filename: str):
+    """Download a specific attendance CSV from history"""
+    try:
+        from flask import send_file
+        safe_name = os.path.basename(filename)
+        csv_path = os.path.join(DATABASE_DIR, safe_name)
+        if not os.path.exists(csv_path):
+            return jsonify({'status': 'error', 'message': 'File not found'}), 404
+        return send_file(csv_path, as_attachment=True, download_name=safe_name, mimetype='text/csv')
+    except Exception as e:
+        logger.error(f"History download error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
