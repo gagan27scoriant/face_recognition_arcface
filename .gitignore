@@ -1,0 +1,23 @@
+# Python
+face_venu/
+venv/
+__pycache__/
+*.pyc
+
+# ML
+models/
+weights/
+*.h5
+*.pt
+*.pth
+
+# Data
+dataset/
+data/
+*.csv
+
+# Logs
+logs/
+
+# OS
+.DS_Store

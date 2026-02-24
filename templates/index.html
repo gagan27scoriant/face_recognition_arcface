@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArcFace Facial Recognition System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1 class="navbar-title">🔐 Facial Recognition System</h1>
+            <p class="navbar-subtitle">Real-time ArcFace Attendance Tracking (CSV Only)</p>
+        </div>
+    </nav>
+
+    <!-- Main Content with Flexbox -->
+    <div class="main-flex-container">
+        <!-- Left Side: Camera Preview -->
+        <div class="camera-column">
+            <div class="camera-section">
+                <h2>📹 Live Camera Feed</h2>
+                <div class="video-container">
+                    <img id="video-stream" 
+                         src="{{ url_for('video_feed') }}" 
+                         alt="Live Camera Feed"
+                         onload="onCameraLoad()"
+                         onerror="onCameraError()" />
+                    <div class="loading-indicator" id="loading-indicator">
+                        <div class="spinner"></div>
+                        <p>Connecting to Camera...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Tables and Controls -->
+        <div class="info-column">
+            <!-- Registered Persons -->
+            <div class="section">
+                <h2>👥 Registered Persons</h2>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="persons-tbody">
+                            <tr>
+                                <td colspan="2" class="placeholder">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Today's Entries -->
+            <div class="section">
+                <h2>📋 Today's Entries (CSV)</h2>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Time</th>
+                                <th>Conf.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-tbody">
+                            <tr>
+                                <td colspan="4" class="placeholder">No entries today</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="section controls-section">
+                <h2>🛠️ Controls</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="reloadDatabase()" id="reload-btn">
+                        🔄 Retrain Model
+                    </button>
+                    <button class="btn-secondary" onclick="downloadCsv()">
+                        💾 Download CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>✓ Attendance data saved ONLY to CSV | ArcFace via DeepFace | Real-time Recognition</p>
+    </footer>
+
+    <script>
+        // Configuration
+        const UPDATE_INTERVAL = 2000; // Update every 2 seconds
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAllData();
+            setInterval(updateAllData, UPDATE_INTERVAL);
+        });
+
+        // Camera load handlers
+        function onCameraLoad() {
+            const indicator = document.getElementById('loading-indicator');
+            if (indicator) {
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, 1000);
+            }
+            console.log('✓ Camera feed loaded');
+        }
+
+        function onCameraError() {
+            const indicator = document.getElementById('loading-indicator');
+            if (indicator) {
+                indicator.innerHTML = '<div style="color: red; padding: 20px;">❌ Camera Error: Check server</div>';
+            }
+            console.error('❌ Camera feed error - ensure Flask app is running');
+        }
+
+        // Update all data
+        function updateAllData() {
+            updateRegisteredPersons();
+            updateTodayEntries();
+        }
+
+        // Update registered persons list
+        function updateRegisteredPersons() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('persons-tbody');
+                    const persons = data.persons || [];
+
+                    if (persons.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="2" class="placeholder">No persons registered</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = persons.map((person, index) => `
+                        <tr>
+                            <td class="row-number">${index + 1}</td>
+                            <td class="person-name">${person}</td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading persons:', error);
+                });
+        }
+
+        // Update today's entries from CSV
+        function updateTodayEntries() {
+            fetch('/api/attendance')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('attendance-tbody');
+                    const records = data.records || [];
+
+                    if (records.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="placeholder">No entries today</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = records.map((record, index) => `
+                        <tr>
+                            <td class="row-number">${index + 1}</td>
+                            <td class="entry-name">${record.Name}</td>
+                            <td class="entry-time">${record.Time}</td>
+                            <td class="entry-confidence">${(parseFloat(record.Confidence) * 100).toFixed(0)}%</td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading attendance:', error);
+                });
+        }
+
+        // Reload and retrain
+        function reloadDatabase() {
+            const btn = document.getElementById('reload-btn');
+            if (confirm('Retrain model from dataset? This may take a minute.')) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Training...';
+
+                fetch('/api/reload')
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(`✓ Model trained!\nRegistered: ${data.registered_persons}`);
+                        updateAllData();
+                    })
+                    .catch(error => {
+                        alert(`Error: ${error}`);
+                    })
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.textContent = '🔄 Retrain Model';
+                    });
+            }
+        }
+
+        // Download CSV
+        function downloadCsv() {
+            window.location.href = '/download/attendance';
+        }
+    </script>
+</body>
+</html>
